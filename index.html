@@ -12,6 +12,7 @@
             <p id="track-name"></p>
             <p id="track-artist"></p>
         </div>
+        <button id="show-crate-view" onclick="showCrateView()">Show Crate View</button>
         <div class="bin-buttons">
             <button id="peak-time-button" onclick="selectBin('peak time')">peak time</button>
             <button id="warmup-button" onclick="selectBin('warmup')">warmup</button>
@@ -20,7 +21,10 @@
             <button id="skip-track-button" onclick="skipTrack()">skip</button>
             <button id="undo-button" onclick="goBack()">undo</button>
         </div>
-        <p id="element"></p>
+        <p id="finished-message"></p>
+        <div class="crate-view"> 
+
+        </div>
     </div>
     <script src="app.js"></script>
 </body>
