@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -8,17 +8,22 @@
 </head>
 <body>
     <div class="app">
-        <h1 id="app-title">Tunecrate</h1>
+        <div class="top-row">
+            <h1 id="app-title">tunecrate</h1>
+            <span id="track-counter"></span>
+        </div>
+        <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+        </div>
         <div class="track-card">
             <p id="track-name"></p>
             <p id="track-artist"></p>
         </div>
-        <div class="bin-buttons">
-            <button onclick="selectBin('peak time')"><span class="dot purple"></span>peak time</button>
-            <button onclick="selectBin('warmup')"><span class="dot teal"></span>warmup</button>
-            <button onclick="selectBin('rolling')"><span class="dot amber"></span>rolling</button>
-            <button onclick="selectBin('late night')"><span class="dot coral"></span>late night</button>
-        </div>
+        <div class="bin-buttons" id="bin-buttons"></div>
+            <div class="add-bin">
+                <input type="text" id="new-bin-name" placeholder="new bin name">
+                <button onclick="addBin()">add</button>
+            </div>
         <div class='action-buttons'>
             <button id="show-crate-view" onclick="showCrateView()">Show Crate View</button>
             <button id="skip-track-button" onclick="skipTrack()">skip</button>
@@ -30,6 +35,68 @@
 
         </div>
     </div>
+    <script src="app.js"></script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tunecrate</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="page-header">
+    <div>
+        <h1 id="app-title">tunecrate</h1>
+        <p class="tagline">sort your tunes, one tap at a time</p>
+    </div>
+    <label class="upload-btn">
+        import rekordbox xml
+        <input type="file" id="xml-upload" accept=".xml" hidden onchange="handleUpload(event)">
+    </label>
+    </header>
+
+    <div class="layout">
+        <main class="tagging-panel">
+            <div class="top-row">
+                <span class="panel-label">now sorting</span>
+                <span id="track-counter"></span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+
+            <div class="track-card">
+                <p id="track-name"></p>
+                <p id="track-artist"></p>
+            </div>
+
+            <div class="bin-buttons" id="bin-buttons"></div>
+
+            <div class="add-bin">
+                <input type="text" id="new-bin-name" placeholder="new bin name">
+                <button onclick="addBin()">add</button>
+            </div>
+
+            <div class="action-buttons">
+                <button onclick="skipTrack()">skip</button>
+                <button onclick="goBack()">undo</button>
+                <button onclick="endSession()">end</button>
+            </div>
+
+            <p id="finished-message"></p>
+        </main>
+
+        <aside class="crate-panel">
+            <h2 class="panel-label">your crates</h2>
+            <div id="crate-view"></div>
+        </aside>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

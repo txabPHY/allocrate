@@ -6,118 +6,257 @@
 
 body {
     font-family: sans-serif;
-    background-color: #111;
-    color: #fff;
+    background-color: #FAF9F5;
+    color: #2B2A26;
+    padding: 2.5rem 3rem;
+    line-height: 1.5;
+}
+
+.page-header {
     display: flex;
-    justify-content: center;
-    padding: 2rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
 }
 
-.app {
-    width: 100%;
-    max-width: 400px;
+.upload-btn {
+    display: inline-block;
+    background: #fff;
+    color: #2B2A26;
+    border: 1px solid #E9E6DD;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #E9E6DD;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
-.track-card {
-    background-color: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 12px;
-    padding: 1.5rem;
+.upload-btn:hover { background: #FAF9F5; }
+.upload-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #E9E6DD; }
+
+#app-title {
+    font-size: 1.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+
+.tagline {
+    font-size: 0.9rem;
+    color: #8C887E;
+    margin-top: 4px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(360px, 460px) 1fr;
+    gap: 2.5rem;
+    align-items: start;
+}
+
+.panel-label {
+    font-size: 0.75rem;
+    color: #8C887E;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+}
+
+.top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+#track-counter {
+    font-size: 0.8rem;
+    color: #8C887E;
+}
+
+.progress-bar {
+    height: 6px;
+    background: #E9E6DD;
+    border-radius: 99px;
+    overflow: hidden;
     margin-bottom: 1.5rem;
 }
 
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #5BA0FF, #3FDBC6, #FFC83D, #FF5BA6);
+    transition: width 0.35s ease;
+}
+
+.track-card {
+    background-color: #FFFFFF;
+    border: 1px solid #EFEDE5;
+    border-radius: 16px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.track-card.animate {
+    animation: cardIn 0.3s ease;
+}
+
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 #track-name {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 500;
     margin-bottom: 4px;
 }
 
 #track-artist {
     font-size: 1rem;
-    color: #aaa;
+    color: #8C887E;
 }
+
 .bin-buttons {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.25rem;
 }
 
 .bin-buttons button {
-    background-color: #1a1a1a;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
     color: #fff;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 12px;
-    font-size: 0.9rem;
     cursor: pointer;
+    background: var(--bg);
+    box-shadow: 0 5px 0 var(--sh);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
 }
 
-.bin-buttons button:hover {
-    background-color: #2a2a2a;
-    border-color: #555;
+.bin-buttons button:hover { filter: brightness(1.06); }
+
+.bin-buttons button:active {
+    transform: translateY(5px);
+    box-shadow: 0 0 0 var(--sh);
 }
 
-.action-buttons {
+.add-bin {
     display: flex;
     gap: 8px;
     margin-bottom: 1.5rem;
 }
 
-.action-buttons button {
+.add-bin input {
     flex: 1;
-    background: none;
-    color: #aaa;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 10px;
-    font-size: 0.85rem;
+    padding: 10px 12px;
+    border: 1px solid #E9E6DD;
+    border-radius: 10px;
+    background: #fff;
+    color: #2B2A26;
+    font-size: 0.9rem;
+}
+
+.add-bin input::placeholder { color: #B5B1A6; }
+
+.add-bin button {
+    background: #2B2A26;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
     cursor: pointer;
 }
 
-.action-buttons button:hover {
-    color: #fff;
-    border-color: #555;
-}
-#app-title {
-    font-size: 1.5rem;
-    font-weight: 500;
-    margin-bottom: 1.5rem;
-    color: #fff;
-    letter-spacing: 0.05em;
-}
+.add-bin button:hover { background: #44423c; }
 
-#finished-message {
-    color: #aaa;
-    font-size: 0.9rem;
+.action-buttons {
+    display: flex;
+    gap: 10px;
     margin-bottom: 1rem;
 }
 
-#crate-view h2 {
-    font-size: 1rem;
-    font-weight: 500;
-    color: #fff;
-    margin: 1.5rem 0 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+.action-buttons button {
+    flex: 1;
+    background: #fff;
+    color: #8C887E;
+    border: 1px solid #E9E6DD;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #E9E6DD;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, color 0.12s ease;
 }
 
-#crate-view p {
+.action-buttons button:hover { color: #2B2A26; }
+
+.action-buttons button:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #E9E6DD;
+}
+
+#finished-message {
+    color: #8C887E;
     font-size: 0.9rem;
-    color: #aaa;
-    padding: 6px 0;
-    border-bottom: 1px solid #222;
 }
 
-.dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
+.crate-panel {
+    border-left: 1px solid #EFEDE5;
+    padding-left: 2.5rem;
+}
+
+#crate-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.crate-card {
+    background: #fff;
+    border: 1px solid #EFEDE5;
+    border-radius: 14px;
+    padding: 1rem 1.25rem;
+}
+
+.crate-card h3 {
     display: inline-block;
-    margin-right: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 99px;
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.02em;
 }
 
-.purple { background-color: #7F77DD; }
-.teal { background-color: #1D9E75; }
-.amber { background-color: #BA7517; }
-.coral { background-color: #D85A30; }
+.crate-card p {
+    font-size: 0.85rem;
+    color: #8C887E;
+    padding: 5px 0;
+    border-bottom: 1px solid #F4F2EA;
+}
+
+.crate-card p:last-child { border-bottom: none; }
+
+.crate-empty {
+    color: #B5B1A6;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 800px) {
+    body { padding: 1.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 2rem; }
+    .crate-panel {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #EFEDE5;
+        padding-top: 1.5rem;
+    }
+}
