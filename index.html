@@ -1,63 +1,42 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tunecrate</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="app">
-        <div class="top-row">
-            <h1 id="app-title">tunecrate</h1>
-            <span id="track-counter"></span>
-        </div>
-        <div class="progress-bar">
-        <div class="progress-fill" id="progress-fill"></div>
-        </div>
-        <div class="track-card">
-            <p id="track-name"></p>
-            <p id="track-artist"></p>
-        </div>
-        <div class="bin-buttons" id="bin-buttons"></div>
-            <div class="add-bin">
-                <input type="text" id="new-bin-name" placeholder="new bin name">
-                <button onclick="addBin()">add</button>
-            </div>
-        <div class='action-buttons'>
-            <button id="show-crate-view" onclick="showCrateView()">Show Crate View</button>
-            <button id="skip-track-button" onclick="skipTrack()">skip</button>
-            <button id="undo-button" onclick="goBack()">undo</button>
-            <button id="end-button" onclick="endSession()">end</button>
-        </div>
-        <p id="finished-message"></p>
-        <div id="crate-view">
-
-        </div>
-    </div>
-    <script src="app.js"></script>
-</body>
-</html> -->
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tunecrate</title>
+    <title>Allocrate</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="landing">
+        <div class="landing-logo">allocrate</div>
+        <div class="landing-body">
+            <label class="landing-import-btn">
+                import collection
+                <input type="file" accept=".xml" hidden onchange="handleUpload(event)">
+            </label>
+            <div class="landing-steps">
+                <span class="step-label">import</span>
+                <span class="landing-arrow">→</span>
+                <span class="step-label">sort</span>
+                <span class="landing-arrow">→</span>
+                <span class="step-label">export</span>
+            </div>
+        </div>
+    </div>
+
     <header class="page-header">
     <div>
-        <h1 id="app-title">tunecrate</h1>
-        <p class="tagline">sort your tunes, one tap at a time</p>
+        <h1 id="app-title">allocrate</h1>
+        <p class="tagline">sort your tunes. upload your collection, and pop back into rekordbox when you're done.</p>
     </div>
-    <label class="upload-btn">
-        import rekordbox xml
-        <input type="file" id="xml-upload" accept=".xml" hidden onchange="handleUpload(event)">
-    </label>
+    <div class="header-actions">
+        <label class="upload-btn">
+            import collection
+            <input type="file" id="xml-upload" accept=".xml" hidden onchange="handleUpload(event)">
+        </label>
+        <button id="export-btn" class="upload-btn" onclick="exportXML()" disabled>export xml</button>
+        <span id="export-msg" class="export-msg">exported!</span>
+    </div>
     </header>
 
     <div class="layout">
@@ -70,25 +49,47 @@
                 <div class="progress-fill" id="progress-fill"></div>
             </div>
 
-            <div class="track-card">
-                <p id="track-name"></p>
-                <p id="track-artist"></p>
+            <div id="sorting-ui">
+                <div class="track-card">
+                    <div class="track-name-row">
+                        <div>
+                            <p id="track-name"></p>
+                            <p id="track-artist"></p>
+                        </div>
+                        <button id="preview-btn" onclick="togglePreview()" disabled>▶</button>
+                    </div>
+                    <p id="no-preview-msg" class="no-preview-msg"></p>
+                </div>
+
+                <div class="controls-row">
+                    <div id="preset-pills" class="preset-pills"></div>
+                    <button id="mode-toggle" onclick="toggleMode()">
+                        <span>multi-crate</span>
+                        <span class="mode-dot"></span>
+                    </button>
+                </div>
+
+                <div class="bin-buttons" id="bin-buttons"></div>
+                <button id="next-btn" class="next-btn" onclick="confirmMultiSelection()" hidden>next →</button>
+
+                <div class="add-bin">
+                    <input type="text" id="new-bin-name" placeholder="new bin name">
+                    <button onclick="addBin()">add</button>
+                </div>
+
+                <div class="action-buttons">
+                    <button onclick="skipTrack()">skip</button>
+                    <button onclick="goBack()">undo</button>
+                </div>
             </div>
 
-            <div class="bin-buttons" id="bin-buttons"></div>
-
-            <div class="add-bin">
-                <input type="text" id="new-bin-name" placeholder="new bin name">
-                <button onclick="addBin()">add</button>
+            <div id="finished-state">
+                <p class="finished-title">all sorted.</p>
+                <p id="finished-subtitle" class="finished-subtitle"></p>
+                <div class="action-buttons finished-actions">
+                    <button onclick="goBack()">undo last</button>
+                </div>
             </div>
-
-            <div class="action-buttons">
-                <button onclick="skipTrack()">skip</button>
-                <button onclick="goBack()">undo</button>
-                <button onclick="endSession()">end</button>
-            </div>
-
-            <p id="finished-message"></p>
         </main>
 
         <aside class="crate-panel">
@@ -97,6 +98,7 @@
         </aside>
     </div>
 
+    <button id="help-btn" onclick="openHelp()">?</button>
     <script src="app.js"></script>
 </body>
 </html>
