@@ -4,6 +4,9 @@
     box-sizing: border-box;
 }
 
+/* author display rules otherwise beat the UA's [hidden] rule */
+[hidden] { display: none !important; }
+
 body {
     font-family: sans-serif;
     background-color: #FAF9F5;
@@ -63,17 +66,9 @@ body {
 .export-msg.visible { opacity: 1; }
 
 #app-title {
-    display: flex;
-    align-items: center;
-    gap: 7px;
     font-size: 1.8rem;
     font-weight: 500;
     letter-spacing: 0.04em;
-}
-
-.logo-img {
-    height: 1.5rem;
-    width: auto;
 }
 
 .tagline {
@@ -457,30 +452,7 @@ body {
     margin-top: 1rem;
 }
 
-@media (max-width: 800px) {
-    body { padding: 1.5rem; }
-    .layout { grid-template-columns: 1fr; gap: 2rem; }
 
-    .ide-layout { grid-template-columns: 1fr; gap: 2rem; }
-    .ide-results-panel {
-        border-left: none;
-        padding-left: 0;
-        border-top: 1px solid #EFEDE5;
-        padding-top: 1.5rem;
-    }
-    #ide-results { grid-template-columns: 1fr; }
-    .ide-upload .landing-import-btn { width: 100%; text-align: center; }
-    .ide-preview { max-height: 200px; }
-    #landing { padding: 5rem 1.5rem 2rem; }
-    .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-    .header-actions { justify-content: flex-start; }
-    .crate-panel {
-        border-left: none;
-        padding-left: 0;
-        border-top: 1px solid #EFEDE5;
-        padding-top: 1.5rem;
-    }
-}
 
 /* ── Landing screen ── */
 
@@ -488,7 +460,6 @@ body {
     position: fixed;
     inset: 0;
     z-index: 100;
-    padding-top: 6rem;
     background: #FAF9F5;
     display: flex;
     flex-direction: column;
@@ -496,13 +467,17 @@ body {
     transition: opacity 0.4s ease;
 }
 
-/* the nav must stay reachable while the landing overlay is up */
 .site-nav {
-    position: relative;
-    z-index: 150;
     display: flex;
     gap: 6px;
-    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .nav-link {
@@ -658,7 +633,8 @@ body {
 .landing-logo {
     display: flex;
     align-items: center;
-    gap: 7px;
+    flex-wrap: wrap;
+    gap: 1rem;
     font-size: 1.8rem;
     font-weight: 500;
     letter-spacing: 0.04em;
@@ -877,3 +853,29 @@ body {
 }
 
 .detail-value { color: #2B2A26; }
+
+/* responsive overrides last, so they beat the base rules above */
+@media (max-width: 800px) {
+    body { padding: 1.5rem; }
+    .layout { grid-template-columns: 1fr; gap: 2rem; }
+
+    .ide-layout { grid-template-columns: 1fr; gap: 2rem; }
+    .ide-results-panel {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #EFEDE5;
+        padding-top: 1.5rem;
+    }
+    #ide-results { grid-template-columns: 1fr; }
+    .ide-upload .landing-import-btn { width: 100%; text-align: center; }
+    .ide-preview { max-height: 200px; }
+    #landing { padding: 2rem 1.5rem; }
+    .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .header-actions { justify-content: flex-start; }
+    .crate-panel {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #EFEDE5;
+        padding-top: 1.5rem;
+    }
+}
