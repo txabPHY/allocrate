@@ -60,9 +60,17 @@ body {
 .export-msg.visible { opacity: 1; }
 
 #app-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
     font-size: 1.8rem;
     font-weight: 500;
     letter-spacing: 0.04em;
+}
+
+.logo-img {
+    height: 1.5rem;
+    width: auto;
 }
 
 .tagline {
@@ -476,6 +484,9 @@ body {
 }
 
 .landing-logo {
+    display: flex;
+    align-items: center;
+    gap: 7px;
     font-size: 1.8rem;
     font-weight: 500;
     letter-spacing: 0.04em;
