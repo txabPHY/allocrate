@@ -65,6 +65,8 @@ let currentIndex = 0;
 let multiMode = false;
 let selectedBins = [];
 let isFinished = false;
+let moreInfoOpen = false;
+let importedFromFiles = false;
 
 const previewAudio = new Audio();
 let previewUrl = null;
@@ -152,6 +154,7 @@ function parseRekordboxXML(xmlString) {
             key:    node.getAttribute("Tonality") || "",
             year:   node.getAttribute("Year") || "",
             id:     node.getAttribute("TrackID") || "",
+            location: decodeLocation(node.getAttribute("Location")),
             bin: null
         });
     }
@@ -166,6 +169,7 @@ function handleUpload(event) {
     const reader = new FileReader();
     reader.onload = function () {
         originalXML = reader.result;
+        importedFromFiles = false;
         const parsed = parseRekordboxXML(reader.result);
         if (parsed.length === 0) {
             alert("No tracks found. Is this a rekordbox collection XML?");
@@ -175,6 +179,165 @@ function handleUpload(event) {
         loadTracks(parsed);
     };
     reader.readAsText(file);
+}
+
+/* ── Folder / file import (reads ID3 tags locally, nothing is uploaded) ── */
+
+const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.aiff', '.aif', '.flac', '.m4a', '.aac'];
+
+function isAudioFile(file) {
+    // leading dot catches .DS_Store and macOS "._name.mp3" resource forks
+    if (file.name.startsWith('.')) return false;
+    const lower = file.name.toLowerCase();
+    return AUDIO_EXTENSIONS.some(ext => lower.endsWith(ext));
+}
+
+function readTags(file) {
+    return new Promise(resolve => {
+        if (typeof jsmediatags === 'undefined') {
+            resolve(null);
+            return;
+        }
+        try {
+            jsmediatags.read(file, {
+                onSuccess: result => resolve(result && result.tags ? result.tags : null),
+                onError: () => resolve(null)
+            });
+        } catch (err) {
+            resolve(null);
+        }
+    });
+}
+
+// Frames arrive as plain strings, {data: ...}, or arrays of either — flatten to text.
+function frameText(frame) {
+    if (frame === undefined || frame === null) return '';
+    if (typeof frame === 'string') return frame.trim();
+    if (typeof frame === 'number') return String(frame);
+    if (Array.isArray(frame)) {
+        for (const entry of frame) {
+            const value = frameText(entry);
+            if (value) return value;
+        }
+        return '';
+    }
+    if (typeof frame === 'object' && frame.data !== undefined) return frameText(frame.data);
+    return '';
+}
+
+// TXXX holds user-defined frames; Mixed In Key writes INITIALKEY/BPM here.
+function txxxValue(tags, wantedDescription) {
+    const raw = tags.TXXX;
+    if (!raw) return '';
+    const list = Array.isArray(raw) ? raw : [raw];
+    for (const frame of list) {
+        const payload = frame && frame.data;
+        if (!payload || typeof payload !== 'object') continue;
+        const description = String(payload.user_description || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (description === wantedDescription) return String(payload.data || '').trim();
+    }
+    return '';
+}
+
+function tagBpm(tags) {
+    const raw = frameText(tags.TBPM) || txxxValue(tags, 'bpm') || txxxValue(tags, 'tempo');
+    const parsed = parseFloat(raw);
+    return isFinite(parsed) && parsed > 0 ? String(parsed) : '';
+}
+
+function tagKey(tags) {
+    return frameText(tags.TKEY) || txxxValue(tags, 'initialkey') || txxxValue(tags, 'key');
+}
+
+function tagYear(tags) {
+    const raw = frameText(tags.year) || frameText(tags.TYER) || frameText(tags.TDRC) || frameText(tags.TDRL);
+    const match = String(raw).match(/\d{4}/);
+    return match ? match[0] : '';
+}
+
+// "Artist - Title.mp3" → {artist, name}; anything else keeps the whole stem as the name.
+function fromFilename(file) {
+    const stem = file.name.replace(/\.[^.]+$/, '').trim();
+    const parts = stem.split(' - ');
+    if (parts.length >= 2 && parts[0].trim()) {
+        return { artist: parts[0].trim(), name: parts.slice(1).join(' - ').trim() };
+    }
+    return { artist: 'Unknown', name: stem };
+}
+
+function buildTrackFromFile(file, tags, id) {
+    const fallback = fromFilename(file);
+    const title = tags ? frameText(tags.title) : '';
+    const artist = tags ? frameText(tags.artist) : '';
+    return {
+        name:   title || fallback.name,
+        artist: artist || fallback.artist,
+        bpm:    tags ? tagBpm(tags) : '',
+        key:    tags ? tagKey(tags) : '',
+        year:   tags ? tagYear(tags) : '',
+        id:     String(id),
+        // relative to the imported folder root; browsers never expose absolute paths
+        location: relativeInsideRoot(file),
+        bin: null
+    };
+}
+
+// Bounded concurrency: a whole library at once would spawn thousands of FileReaders.
+async function readAllTags(files, onProgress) {
+    const CONCURRENCY = 8;
+    const results = new Array(files.length);
+    let cursor = 0;
+    let completed = 0;
+
+    async function worker() {
+        while (cursor < files.length) {
+            const index = cursor++;
+            results[index] = await readTags(files[index]);
+            completed++;
+            if (completed % 10 === 0 || completed === files.length) {
+                onProgress(completed, files.length);
+            }
+        }
+    }
+
+    const workers = [];
+    for (let i = 0; i < Math.min(CONCURRENCY, files.length); i++) workers.push(worker());
+    await Promise.all(workers);
+    return results;
+}
+
+function showImportStatus(text) {
+    const el = document.getElementById('import-status');
+    el.textContent = text;
+    el.hidden = false;
+}
+
+function hideImportStatus() {
+    document.getElementById('import-status').hidden = true;
+}
+
+async function handleFolderUpload(event) {
+    const selected = Array.from(event.target.files || []);
+    const audioFiles = selected.filter(isAudioFile);
+    event.target.value = '';  // so picking the same folder again still fires onchange
+
+    if (audioFiles.length === 0) {
+        alert('No supported audio files found.\nSupported: mp3, wav, aiff, flac, m4a, aac.');
+        return;
+    }
+
+    showImportStatus(`reading tags… 0 / ${audioFiles.length}`);
+    const tagList = await readAllTags(audioFiles, (done, total) => {
+        showImportStatus(`reading tags… ${done} / ${total}`);
+    });
+
+    const parsed = audioFiles.map((file, i) => buildTrackFromFile(file, tagList[i], i + 1));
+
+    hideImportStatus();
+    originalXML = null;   // nothing to amend — export will build a fresh document
+    importedFromFiles = true;
+    dismissLanding();
+    loadTracks(parsed);
 }
 
 function loadTracks(newTracks) {
@@ -205,6 +368,8 @@ function showTrack() {
     const track = currentQueue[currentIndex];
     document.getElementById('track-name').textContent = track.name;
     document.getElementById('track-artist').textContent = track.artist;
+    moreInfoOpen = false;
+    renderTrackDetails();
     loadPreview(track);
 
     document.getElementById('track-counter').textContent = (currentIndex + 1) + ' / ' + currentQueue.length;
@@ -366,32 +531,11 @@ function showFinished() {
 
 function updateExportButton() {
     const hasBin = tracks.some(t => t.bin && (!Array.isArray(t.bin) || t.bin.length > 0));
-    document.getElementById('export-btn').disabled = !originalXML || !hasBin;
+    document.getElementById('export-btn').disabled = !hasBin;
+    document.getElementById('export-crates-btn').disabled = !hasBin;
 }
 
-function exportXML() {
-    if (!originalXML) return;
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(originalXML, "application/xml");
-
-    const allNodes = doc.getElementsByTagName("NODE");
-    let rootNode = null;
-    for (const node of allNodes) {
-        if (node.getAttribute("Type") === "0" && node.getAttribute("Name") === "ROOT") {
-            rootNode = node;
-            break;
-        }
-    }
-    if (!rootNode) return;
-
-    for (const child of Array.from(rootNode.children)) {
-        if (child.getAttribute("Name") === "Allocrate") {
-            rootNode.removeChild(child);
-            break;
-        }
-    }
-
+function buildCrates() {
     const crates = {};
     for (const track of tracks) {
         if (!track.bin || !track.id) continue;
@@ -401,10 +545,10 @@ function exportXML() {
             crates[bin].push(track.id);
         }
     }
+    return Object.entries(crates);
+}
 
-    const crateEntries = Object.entries(crates);
-    if (crateEntries.length === 0) return;
-
+function buildAllocrateFolder(doc, crateEntries) {
     const folder = doc.createElement("NODE");
     folder.setAttribute("Type", "0");
     folder.setAttribute("Name", "Allocrate");
@@ -423,10 +567,77 @@ function exportXML() {
         }
         folder.appendChild(playlist);
     }
+    return folder;
+}
 
-    rootNode.appendChild(folder);
+function findRootNode(doc) {
+    for (const node of doc.getElementsByTagName("NODE")) {
+        if (node.getAttribute("Type") === "0" && node.getAttribute("Name") === "ROOT") return node;
+    }
+    return null;
+}
 
-    const xmlString = new XMLSerializer().serializeToString(doc);
+// Amend path — keep the user's COLLECTION and PLAYLISTS untouched, swap in our folder.
+function buildAmendedDoc(crateEntries) {
+    const doc = new DOMParser().parseFromString(originalXML, "application/xml");
+    const rootNode = findRootNode(doc);
+    if (!rootNode) return null;
+
+    for (const child of Array.from(rootNode.children)) {
+        if (child.getAttribute("Name") === "Allocrate") {
+            rootNode.removeChild(child);
+            break;
+        }
+    }
+
+    rootNode.appendChild(buildAllocrateFolder(doc, crateEntries));
+    return doc;
+}
+
+// Fresh path — file import has no source XML, so synthesise a whole document.
+function buildFreshDoc(crateEntries) {
+    const template =
+        '<DJ_PLAYLISTS Version="1.0.0">' +
+        '<PRODUCT Name="Allocrate" Version="1.0" Company="Allocrate"/>' +
+        '<COLLECTION Entries="0"></COLLECTION>' +
+        '<PLAYLISTS><NODE Type="0" Name="ROOT" Count="0"></NODE></PLAYLISTS>' +
+        '</DJ_PLAYLISTS>';
+    const doc = new DOMParser().parseFromString(template, "application/xml");
+
+    const collection = doc.getElementsByTagName("COLLECTION")[0];
+    collection.setAttribute("Entries", String(tracks.length));
+
+    for (const track of tracks) {
+        const node = doc.createElement("TRACK");
+        node.setAttribute("TrackID", track.id);
+        node.setAttribute("Name", track.name || "");
+        node.setAttribute("Artist", track.artist || "");
+        if (track.bpm)  node.setAttribute("AverageBpm", track.bpm);
+        if (track.key)  node.setAttribute("Tonality", track.key);
+        if (track.year) node.setAttribute("Year", track.year);
+        if (track.location) node.setAttribute("Location", track.location);
+        collection.appendChild(node);
+    }
+
+    const rootNode = findRootNode(doc);
+    rootNode.setAttribute("Count", "1");
+    rootNode.appendChild(buildAllocrateFolder(doc, crateEntries));
+    return doc;
+}
+
+function exportXML() {
+    const crateEntries = buildCrates();
+    if (crateEntries.length === 0) return;
+
+    const doc = originalXML ? buildAmendedDoc(crateEntries) : buildFreshDoc(crateEntries);
+    if (!doc) return;
+
+    // Chrome's serializer keeps the source declaration, Firefox drops it — add one only if missing
+    let xmlString = new XMLSerializer().serializeToString(doc);
+    if (!xmlString.startsWith('<?xml')) {
+        xmlString = '<?xml version="1.0" encoding="UTF-8"?>\n' + xmlString;
+    }
+
     const blob = new Blob([xmlString], { type: "application/xml" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -439,6 +650,242 @@ function exportXML() {
     msg.classList.add("visible");
     setTimeout(() => msg.classList.remove("visible"), 2000);
 }
+
+/* ── Crate export: M3U playlists + symlink script, bundled as one zip ── */
+
+// rekordbox stores "file://localhost/Users/me/Music/x.mp3" — turn it into a real path
+function decodeLocation(raw) {
+    if (!raw) return '';
+    let p = String(raw);
+    if (p.startsWith('file://localhost')) p = p.slice('file://localhost'.length);
+    else if (p.startsWith('file://')) p = p.slice('file://'.length);
+    try { p = decodeURIComponent(p); } catch (err) { /* malformed escape — keep raw */ }
+    if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1);   // "/C:/Users/..." -> "C:/Users/..."
+    return p;
+}
+
+// webkitRelativePath begins with the picked folder's own name; drop it so paths are
+// relative to that folder, which is where the generated script expects to run
+function relativeInsideRoot(file) {
+    const rel = file.webkitRelativePath || '';
+    if (!rel) return file.name;
+    const parts = rel.split('/');
+    return parts.length > 1 ? parts.slice(1).join('/') : rel;
+}
+
+function baseName(path) {
+    const parts = String(path).split('/');
+    return parts[parts.length - 1] || String(path);
+}
+
+// single-quote for /bin/sh, escaping any embedded single quote
+function shQuote(str) {
+    return "'" + String(str).replace(/'/g, "'\\''") + "'";
+}
+
+function safeFolderName(name) {
+    const cleaned = String(name).replace(/[\/\\]/g, '-').replace(/^\.+/, '').trim();
+    return cleaned || 'crate';
+}
+
+function uniqueName(used, base) {
+    if (!used.has(base)) { used.add(base); return base; }
+    const dot = base.lastIndexOf('.');
+    const stem = dot > 0 ? base.slice(0, dot) : base;
+    const ext  = dot > 0 ? base.slice(dot) : '';
+    let n = 2, candidate;
+    do { candidate = stem + ' (' + n + ')' + ext; n++; } while (used.has(candidate));
+    used.add(candidate);
+    return candidate;
+}
+
+function crateGroups() {
+    const crates = {};
+    for (const track of tracks) {
+        if (!track.bin) continue;
+        const binNames = Array.isArray(track.bin) ? track.bin : [track.bin];
+        for (const bin of binNames) {
+            if (!crates[bin]) crates[bin] = [];
+            crates[bin].push(track);
+        }
+    }
+    return Object.entries(crates);
+}
+
+/* minimal stored-mode zip writer — avoids pulling in a zip dependency */
+
+function crc32(bytes) {
+    let table = crc32.table;
+    if (!table) {
+        table = crc32.table = new Uint32Array(256);
+        for (let i = 0; i < 256; i++) {
+            let c = i;
+            for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+            table[i] = c >>> 0;
+        }
+    }
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) crc = table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function makeZip(entries) {
+    const encoder = new TextEncoder();
+    const parts = [];
+    const central = [];
+    let offset = 0;
+
+    for (const entry of entries) {
+        const nameBytes = encoder.encode(entry.name);
+        const data = encoder.encode(entry.text);
+        const crc = crc32(data);
+
+        const local = new Uint8Array(30 + nameBytes.length);
+        const lv = new DataView(local.buffer);
+        lv.setUint32(0, 0x04034b50, true);
+        lv.setUint16(4, 20, true);
+        lv.setUint16(6, 0x0800, true);          // UTF-8 filenames
+        lv.setUint16(8, 0, true);               // stored, no compression
+        lv.setUint32(14, crc, true);
+        lv.setUint32(18, data.length, true);
+        lv.setUint32(22, data.length, true);
+        lv.setUint16(26, nameBytes.length, true);
+        local.set(nameBytes, 30);
+        parts.push(local, data);
+
+        const cd = new Uint8Array(46 + nameBytes.length);
+        const cv = new DataView(cd.buffer);
+        cv.setUint32(0, 0x02014b50, true);
+        cv.setUint16(4, (3 << 8) | 20, true);   // made by unix, so the mode below is honoured
+        cv.setUint16(6, 20, true);
+        cv.setUint16(8, 0x0800, true);
+        cv.setUint16(10, 0, true);
+        cv.setUint32(16, crc, true);
+        cv.setUint32(20, data.length, true);
+        cv.setUint32(24, data.length, true);
+        cv.setUint16(28, nameBytes.length, true);
+        cv.setUint32(38, ((entry.exec ? 0o100755 : 0o100644) << 16) >>> 0, true);
+        cv.setUint32(42, offset, true);
+        cd.set(nameBytes, 46);
+        central.push(cd);
+
+        offset += local.length + data.length;
+    }
+
+    let centralSize = 0;
+    for (const c of central) centralSize += c.length;
+
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, central.length, true);
+    ev.setUint16(10, central.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+
+    return new Blob(parts.concat(central, [end]), { type: 'application/zip' });
+}
+
+function buildM3U(binTracks) {
+    const lines = ['#EXTM3U'];
+    for (const track of binTracks) {
+        if (!track.location) continue;
+        lines.push('#EXTINF:-1,' + track.artist + ' - ' + track.name);
+        lines.push(track.location);
+    }
+    return lines.join('\n') + '\n';
+}
+
+function buildShellScript(groups) {
+    const lines = [
+        '#!/bin/sh',
+        '# Generated by Allocrate.',
+        '# Creates one folder per crate, each filled with symlinks to your tracks.',
+        '# Nothing is copied or moved — every entry points at your original file.',
+        'set -e',
+        'ROOT="$(cd "$(dirname "$0")" && pwd)"',
+        'OUT="$ROOT/Allocrate"',
+        ''
+    ];
+    let missing = 0;
+
+    for (const [bin, binTracks] of groups) {
+        const folder = safeFolderName(bin);
+        lines.push('# ' + bin);
+        lines.push('mkdir -p "$OUT"/' + shQuote(folder));
+        const used = new Set();
+        for (const track of binTracks) {
+            if (!track.location) { missing++; continue; }
+            const link = uniqueName(used, baseName(track.location));
+            // relative paths resolve against the script's own directory
+            const target = importedFromFiles
+                ? '"$ROOT"/' + shQuote(track.location)
+                : shQuote(track.location);
+            lines.push('ln -sfn ' + target + ' "$OUT"/' + shQuote(folder) + '/' + shQuote(link));
+        }
+        lines.push('');
+    }
+
+    if (missing > 0) lines.push('# ' + missing + ' track(s) had no file path and were skipped');
+    lines.push('echo "Done — your crates are in $OUT"');
+    return lines.join('\n') + '\n';
+}
+
+function buildReadme(groups) {
+    const total = groups.reduce((n, g) => n + g[1].length, 0);
+    const where = importedFromFiles
+        ? 'the folder you imported'
+        : 'anywhere (the paths inside are absolute)';
+    return [
+        'Allocrate — crate export',
+        '========================',
+        '',
+        groups.length + ' crates, ' + total + ' track placements.',
+        '',
+        'create-folders.sh',
+        '  Builds an "Allocrate" folder with one subfolder per crate, filled with',
+        '  symlinks to your tracks. No audio is copied, so it uses almost no disk space.',
+        '',
+        '  Put this script in ' + where + ', then run:',
+        '      sh create-folders.sh',
+        '',
+        '*.m3u8',
+        '  One playlist per crate. Drag them into rekordbox, Serato, Traktor, VirtualDJ',
+        '  or any player that reads m3u.',
+        (importedFromFiles
+            ? '  These use relative paths, so keep them in the folder you imported.'
+            : '  These use absolute paths, so they work from anywhere.'),
+        ''
+    ].join('\n');
+}
+
+function exportCrates() {
+    const groups = crateGroups();
+    if (groups.length === 0) return;
+
+    const entries = [
+        { name: 'README.txt', text: buildReadme(groups) },
+        { name: 'create-folders.sh', text: buildShellScript(groups), exec: true }
+    ];
+
+    const usedNames = new Set(entries.map(e => e.name));
+    for (const [bin, binTracks] of groups) {
+        const fileName = uniqueName(usedNames, safeFolderName(bin) + '.m3u8');
+        entries.push({ name: fileName, text: buildM3U(binTracks) });
+    }
+
+    const url = URL.createObjectURL(makeZip(entries));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'allocrate-crates.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    const msg = document.getElementById('export-msg');
+    msg.classList.add('visible');
+    setTimeout(() => msg.classList.remove('visible'), 2000);
+}
+
 
 function toggleMode() {
     multiMode = !multiMode;
@@ -540,8 +987,52 @@ function dismissLanding() {
     setTimeout(() => landing.remove(), 400);
 }
 
-function openHelp() {
-    console.log('help — coming soon');
+function toggleMoreInfo() {
+    moreInfoOpen = !moreInfoOpen;
+    renderTrackDetails();
+}
+
+function renderTrackDetails() {
+    const details = document.getElementById('track-details');
+    const btn = document.getElementById('more-info-btn');
+    const track = currentQueue[currentIndex];
+    if (!track) return;
+
+    const rows = [
+        ['bpm',  track.bpm],
+        ['key',  track.key],
+        ['year', track.year]
+    ].filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== '');
+
+    // nothing worth expanding into — hide the toggle entirely
+    btn.hidden = rows.length === 0;
+
+    details.innerHTML = '';
+    if (!moreInfoOpen || rows.length === 0) {
+        details.classList.remove('open');
+        btn.textContent = 'more info';
+        return;
+    }
+
+    for (const [label, value] of rows) {
+        const row = document.createElement('div');
+        row.className = 'detail-row';
+
+        const labelEl = document.createElement('span');
+        labelEl.className = 'detail-label';
+        labelEl.textContent = label;
+
+        const valueEl = document.createElement('span');
+        valueEl.className = 'detail-value';
+        valueEl.textContent = value;
+
+        row.appendChild(labelEl);
+        row.appendChild(valueEl);
+        details.appendChild(row);
+    }
+
+    details.classList.add('open');
+    btn.textContent = 'less info';
 }
 
 renderPresetPills();

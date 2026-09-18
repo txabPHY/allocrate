@@ -22,6 +22,8 @@ body {
 .header-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 10px;
 }
 
@@ -42,7 +44,8 @@ body {
 .upload-btn:hover { background: #FAF9F5; }
 .upload-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #E9E6DD; }
 
-#export-btn:disabled {
+#export-btn:disabled,
+#export-crates-btn:disabled {
     opacity: 0.38;
     cursor: default;
     box-shadow: none;
@@ -457,6 +460,20 @@ body {
 @media (max-width: 800px) {
     body { padding: 1.5rem; }
     .layout { grid-template-columns: 1fr; gap: 2rem; }
+
+    .ide-layout { grid-template-columns: 1fr; gap: 2rem; }
+    .ide-results-panel {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid #EFEDE5;
+        padding-top: 1.5rem;
+    }
+    #ide-results { grid-template-columns: 1fr; }
+    .ide-upload .landing-import-btn { width: 100%; text-align: center; }
+    .ide-preview { max-height: 200px; }
+    #landing { padding: 5rem 1.5rem 2rem; }
+    .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+    .header-actions { justify-content: flex-start; }
     .crate-panel {
         border-left: none;
         padding-left: 0;
@@ -471,11 +488,166 @@ body {
     position: fixed;
     inset: 0;
     z-index: 100;
+    padding-top: 6rem;
     background: #FAF9F5;
     display: flex;
     flex-direction: column;
     padding: 2.5rem 3rem;
     transition: opacity 0.4s ease;
+}
+
+/* the nav must stay reachable while the landing overlay is up */
+.site-nav {
+    position: relative;
+    z-index: 150;
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.nav-link {
+    padding: 6px 14px;
+    border-radius: 99px;
+    border: 1px solid #E9E6DD;
+    background: #fff;
+    color: #8C887E;
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.nav-link:hover { border-color: #C8C4BA; color: #2B2A26; }
+
+.nav-link.active {
+    background: #2B2A26;
+    border-color: #2B2A26;
+    color: #fff;
+}
+
+/* ── IDEngine ── */
+
+.ide-layout {
+    display: grid;
+    grid-template-columns: minmax(360px, 520px) 1fr;
+    gap: 2.5rem;
+    align-items: start;
+}
+
+.ide-upload {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 12px 0 1.25rem;
+}
+
+.ide-hint {
+    font-size: 0.78rem;
+    color: #B5B1A6;
+}
+
+.ide-hint kbd {
+    font-family: inherit;
+    font-size: 0.72rem;
+    background: #fff;
+    border: 1px solid #E9E6DD;
+    border-radius: 5px;
+    padding: 1px 5px;
+}
+
+.ide-preview {
+    display: block;
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    object-position: left center;
+    border: 1px solid #EFEDE5;
+    border-radius: 14px;
+    background: #fff;
+    padding: 8px;
+    margin-bottom: 1rem;
+}
+
+.ide-status {
+    font-size: 0.82rem;
+    color: #8C887E;
+    margin-bottom: 1.25rem;
+}
+
+.ide-textarea {
+    width: 100%;
+    margin: 12px 0 1rem;
+    padding: 14px 16px;
+    border: 1px solid #E9E6DD;
+    border-radius: 14px;
+    background: #fff;
+    color: #2B2A26;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    resize: vertical;
+}
+
+.ide-textarea::placeholder { color: #B5B1A6; }
+
+.ide-results-panel {
+    border-left: 1px solid #EFEDE5;
+    padding-left: 2.5rem;
+}
+
+#ide-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.ide-card {
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0;
+}
+
+.ide-song {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.35;
+    margin-bottom: 3px;
+}
+
+.ide-artist {
+    font-size: 0.85rem;
+    color: #8C887E;
+    margin-bottom: 12px;
+}
+
+.ide-artist.unresolved {
+    color: #B5B1A6;
+    font-style: italic;
+}
+
+.ide-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ide-links a {
+    background: #fff;
+    color: #8C887E;
+    border: 1px solid #E9E6DD;
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    text-decoration: none;
+    box-shadow: 0 2px 0 #E9E6DD;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, color 0.12s ease;
+}
+
+.ide-links a:hover { color: #2B2A26; }
+
+.ide-links a:active {
+    transform: translateY(2px);
+    box-shadow: 0 0 0 #E9E6DD;
 }
 
 #landing.fade-out {
@@ -494,12 +666,16 @@ body {
 }
 
 .landing-body {
-    flex: 1;
+    flex: 1 1 auto;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    text-align: center;
     gap: 2.5rem;
+    /* offset the logo row's height so the block centres on the viewport, not the leftover space */
+    padding-bottom: 2.5rem;
 }
 
 .landing-steps {
@@ -517,6 +693,14 @@ body {
 .landing-arrow {
     color: #C0BCB4;
     font-size: 1rem;
+}
+
+.landing-import-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
 }
 
 .landing-import-btn {
@@ -543,12 +727,35 @@ body {
 }
 
 
-/* ── Help button ── */
+/* ── Import progress ── */
 
-#help-btn {
+/* fixed + above #landing (100) so it reads the same from the landing or the app */
+.import-status {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    z-index: 300;
+    background: #fff;
+    border: 1px solid #E9E6DD;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    color: #8C887E;
+    box-shadow: 0 6px 20px rgba(43, 42, 38, 0.1);
+}
+
+/* ── Help button + hover popup ── */
+
+/* z-index sits above #landing (100) so one button serves both screens */
+#help-wrap {
     position: fixed;
     bottom: 1.5rem;
     right: 1.5rem;
+    z-index: 200;
+}
+
+#help-btn {
+    display: block;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -557,10 +764,10 @@ body {
     color: #8C887E;
     font-size: 0.85rem;
     font-weight: 500;
+    font-family: inherit;
     cursor: pointer;
     box-shadow: 0 3px 0 #E9E6DD;
     transition: transform 0.08s ease, box-shadow 0.08s ease, color 0.12s ease;
-    z-index: 50;
 }
 
 #help-btn:hover { color: #2B2A26; }
@@ -569,3 +776,104 @@ body {
     transform: translateY(3px);
     box-shadow: 0 0 0 #E9E6DD;
 }
+
+#help-popup {
+    position: absolute;
+    bottom: calc(100% + 14px);
+    right: 0;
+    width: min(560px, calc(100vw - 3rem));
+    background: #fff;
+    border: 1px solid #EFEDE5;
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    box-shadow: 0 14px 40px rgba(43, 42, 38, 0.14);
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear 0.18s;
+}
+
+/* invisible bridge across the gap so moving button → popup never flickers */
+#help-popup::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 100%;
+    height: 16px;
+}
+
+#help-wrap:hover #help-popup,
+#help-wrap:focus-within #help-popup {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s;
+}
+
+.help-popup-title {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #2B2A26;
+    margin-bottom: 0.6rem;
+}
+
+.help-popup-text {
+    font-size: 0.9rem;
+    color: #8C887E;
+    line-height: 1.6;
+}
+
+/* ── Track card "more info" ── */
+
+.more-info-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 12px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    color: #B5B1A6;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.12s ease;
+}
+
+.more-info-btn:hover { color: #8C887E; }
+
+.track-details {
+    display: none;
+}
+
+.track-details.open {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #F4F2EA;
+    animation: detailsIn 0.2s ease;
+}
+
+@keyframes detailsIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+}
+
+.detail-label {
+    color: #B5B1A6;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.7rem;
+    align-self: center;
+}
+
+.detail-value { color: #2B2A26; }

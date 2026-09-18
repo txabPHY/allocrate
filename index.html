@@ -7,16 +7,27 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <nav class="site-nav">
+        <a href="index.html" class="nav-link active">sort</a>
+        <a href="idengine.html" class="nav-link">IDEngine</a>
+    </nav>
+
     <div id="landing">
         <div class="landing-logo">
             <img src="allocratelogo1.png" alt="allocrate" class="logo-img">
             allocrate
         </div>
         <div class="landing-body">
-            <label class="landing-import-btn">
-                import collection
-                <input type="file" accept=".xml" hidden onchange="handleUpload(event)">
-            </label>
+            <div class="landing-import-row">
+                <label class="landing-import-btn">
+                    import collection
+                    <input type="file" accept=".xml" hidden onchange="handleUpload(event)">
+                </label>
+                <label class="landing-import-btn">
+                    import files
+                    <input type="file" webkitdirectory multiple accept="audio/*" hidden onchange="handleFolderUpload(event)">
+                </label>
+            </div>
             <div class="landing-steps">
                 <span class="step-label">import</span>
                 <span class="landing-arrow">→</span>
@@ -37,7 +48,12 @@
             import collection
             <input type="file" id="xml-upload" accept=".xml" hidden onchange="handleUpload(event)">
         </label>
+        <label class="upload-btn">
+            import files
+            <input type="file" id="folder-upload" webkitdirectory multiple accept="audio/*" hidden onchange="handleFolderUpload(event)">
+        </label>
         <button id="export-btn" class="upload-btn" onclick="exportXML()" disabled>export xml</button>
+        <button id="export-crates-btn" class="upload-btn" onclick="exportCrates()" disabled>export crates</button>
         <span id="export-msg" class="export-msg">exported!</span>
     </div>
     </header>
@@ -61,6 +77,8 @@
                         </div>
                         <button id="preview-btn" onclick="togglePreview()" disabled>▶</button>
                     </div>
+                    <button id="more-info-btn" class="more-info-btn" onclick="toggleMoreInfo()" hidden>more info</button>
+                    <div id="track-details" class="track-details"></div>
                     <p id="no-preview-msg" class="no-preview-msg"></p>
                 </div>
 
@@ -101,7 +119,16 @@
         </aside>
     </div>
 
-    <button id="help-btn" onclick="openHelp()">?</button>
+    <div id="help-wrap">
+        <div id="help-popup" role="tooltip">
+            <p class="help-popup-title">what is allocrate?</p>
+            <p class="help-popup-text">Allocrate helps you sort your DJ library into custom crates. Import your rekordbox collection, tag each track into a crate, then export it straight back into rekordbox.</p>
+        </div>
+        <button id="help-btn" aria-label="help" aria-describedby="help-popup">?</button>
+    </div>
+    <p id="import-status" class="import-status" hidden></p>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
