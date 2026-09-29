@@ -223,6 +223,9 @@ function showPreview(source) {
 
 function handleImage(file) {
     if (!file) return;
+    // leave the centred landing layout and open the workspace below the button
+    document.body.classList.add('has-image');
+    document.getElementById('ide-workspace').hidden = false;
     showPreview(file);
     document.getElementById('ide-results').innerHTML = '';
     runOCR(file);

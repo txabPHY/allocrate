@@ -4,35 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IDEngine — Allocrate</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
-<body>
+<body class="ide-page">
     <header class="page-header">
         <div>
             <nav class="site-nav">
                 <a href="index.html" class="nav-tab">allocrate</a>
                 <a href="idengine.html" class="nav-tab active" aria-current="page">IDEngine</a>
             </nav>
-            <p class="tagline">photograph a tracklist, pull out the IDs, and go find them.</p>
         </div>
     </header>
 
-    <div class="ide-layout">
-        <main>
-            <p class="panel-label">1 · add a tracklist image</p>
-            <div class="ide-upload">
-                <label class="landing-import-btn">
-                    choose photo
-                    <input type="file" id="image-upload" accept="image/*" hidden>
-                </label>
-                <p class="ide-hint">or paste an image with <kbd>⌘V</kbd> / <kbd>Ctrl V</kbd></p>
-            </div>
+    <!-- same classes as the sorter's landing, so the button sits in the same spot -->
+    <div class="landing-body ide-hero">
+        <label class="landing-import-btn">
+            choose photo
+            <input type="file" id="image-upload" accept="image/*" hidden>
+        </label>
+        <p class="step-label ide-paste-hint">or paste an image with <kbd>⌘V</kbd> / <kbd>Ctrl V</kbd></p>
+    </div>
 
+    <div id="ide-workspace" class="ide-layout" hidden>
+        <main>
             <img id="image-preview" class="ide-preview" alt="" hidden>
             <p id="ocr-status" class="ide-status" hidden></p>
 
             <div id="text-step" hidden>
-                <p class="panel-label">2 · check the text</p>
+                <p class="panel-label">check the text</p>
                 <textarea id="tracklist-text" class="ide-textarea" rows="10"
                           placeholder="one track per line, e.g. Overmono - Le Tigre"></textarea>
                 <button id="find-btn" class="next-btn" onclick="findTracks()">find tracks</button>
@@ -48,12 +47,12 @@
     <div id="help-wrap">
         <div id="help-popup" role="tooltip">
             <p class="help-popup-title">what is IDEngine?</p>
-            <p class="help-popup-text">Snap or paste a photo of a tracklist — a festival flyer, a screen, a scribbled note — and IDEngine reads the text, splits it into artist and song, and gives you one-tap search links for YouTube, SoundCloud, Bandcamp and Spotify. Everything happens in your browser; no image is uploaded anywhere.</p>
+            <p class="help-popup-text">Photograph a tracklist, pull out the IDs, and go find them. Snap or paste a photo of a tracklist — a festival flyer, a screen, a scribbled note — and IDEngine reads the text, splits it into artist and song, and gives you one-tap search links for YouTube, SoundCloud, Bandcamp and Spotify. Everything happens in your browser; no image is uploaded anywhere.</p>
         </div>
         <button id="help-btn" aria-label="help" aria-describedby="help-popup">?</button>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
-    <script src="idengine.js"></script>
+    <script src="idengine.js?v=4"></script>
 </body>
 </html>
