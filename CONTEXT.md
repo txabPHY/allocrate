@@ -5,7 +5,7 @@ A web app for DJs to quickly sort their music library into custom bins/crates.
 The core loop: tracks load one by one, user taps a coloured bin button to assign it, crate view updates live on the right. Built in vanilla HTML, CSS, and JavaScript — no frameworks, no build tools, just three files opened directly in the browser.
 
 ## Stack
-Two tools, shared `style.css`, nav bar switches between them. Deployed at https://allocrate.app/ from the GitHub repo (so it runs over HTTPS, not file://).
+Two tools, shared `style.css`. The page titles are the nav: "allocrate" and "IDEngine" sit side by side at heading size, with the current one dark and the other muted. Deployed at https://allocrate.app/ from the GitHub repo (so it runs over HTTPS, not file://).
 - `index.html` / `app.js` — the sorter
 - `idengine.html` / `idengine.js` — OCR a tracklist photo into search links
 - `index.html` — layout and structure
@@ -34,9 +34,12 @@ No backend, no npm, no dependencies. Keep it that way unless there's a strong re
 - Export crates — a zip containing one `.m3u8` per crate plus `create-folders.sh`, which builds an `Allocrate/` folder of subfolders filled with **symlinks** (nothing copied or moved, ~0 bytes). Uses absolute paths for XML imports and script-relative paths for file imports. Zip is written by a built-in stored-mode writer, no dependency.
 
 ## IDEngine
-- Image via `<input accept="image/*" capture="environment">` (camera or library on mobile), plus paste-from-clipboard on desktop
+- Image via `<input accept="image/*">` with **no** `capture` attribute — `capture` forces iOS straight into the camera; without it iOS offers Photo Library / Take Photo / Choose File. Plus paste-from-clipboard on desktop
 - Tesseract.js v5 via CDN does OCR client-side; text lands in an editable textarea so OCR mistakes can be fixed before searching
-- Parser strips leading track numbers/timestamps ("1.", "01)", "#3", "00:12:34"), splits on a spaced hyphen or an en/em dash, and keeps unsplittable lines as artist "Unknown" rather than dropping them. Unspaced ASCII hyphens are never split on, so "Jay-Z" and "Hi-Fi Sean" survive.
+- Parser finds track *boundaries* first, on the whole text flattened (so OCR line-wraps mid-track don't matter): timestamps if there are 2+, otherwise a run of **consecutive** track numbers (3+). Sequence is what tells "20 Burnski" (track number) from "Vic 20 & Sinclair" (name). Tolerates one missed number. Falls back to one-track-per-line for unnumbered lists.
+- "Tracklist:" style headers are dropped; trailing `*` markers stripped
+- `w/`, `x` and `vs.` split a chunk into separate tracks only when *both* sides have their own "Artist - Song" — so "A - B w/ C - D" is two tracks but "Overmono vs. Lil Baby - BBY" stays one
+- Within each chunk: split on a spaced hyphen or en/em dash (unspaced ASCII hyphens never split, so "Jay-Z" survives); no separator → artist "Unknown" rather than dropped
 - Trailing brackets are stripped from the *search query* only ("Le Tigre (Original Mix)" searches as "Le Tigre"); the card still shows the full title
 - Each result card links to YouTube, SoundCloud, Bandcamp and Spotify searches
 

@@ -65,12 +65,6 @@ body {
 
 .export-msg.visible { opacity: 1; }
 
-#app-title {
-    font-size: 1.8rem;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-}
-
 .tagline {
     font-size: 0.9rem;
     color: #8C887E;
@@ -469,35 +463,24 @@ body {
 
 .site-nav {
     display: flex;
-    gap: 6px;
+    align-items: baseline;
     flex-wrap: wrap;
+    gap: 0.4rem 1.5rem;
 }
 
-.title-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.nav-link {
-    padding: 6px 14px;
-    border-radius: 99px;
-    border: 1px solid #E9E6DD;
-    background: #fff;
-    color: #8C887E;
-    font-size: 0.8rem;
+.nav-tab {
+    font-size: 1.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    color: #C0BCB4;
     text-decoration: none;
-    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    transition: color 0.15s ease;
 }
 
-.nav-link:hover { border-color: #C8C4BA; color: #2B2A26; }
+.nav-tab:hover { color: #8C887E; }
 
-.nav-link.active {
-    background: #2B2A26;
-    border-color: #2B2A26;
-    color: #fff;
-}
+.nav-tab.active { color: #2B2A26; }
 
 /* ── IDEngine ── */
 

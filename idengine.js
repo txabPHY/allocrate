@@ -44,21 +44,125 @@ function hasContent(str) {
     return /[A-Za-z0-9]/.test(str);
 }
 
+const HEADER_LINE = /^\s*(?:track\s*list|set\s*list|play\s*list)\s*:?\s*$/i;
+
+function removeHeaders(text) {
+    return String(text)
+        .split(/\r?\n/)
+        .filter(line => !HEADER_LINE.test(line))
+        .join('\n')
+        .replace(/^\s*(?:track\s*list|set\s*list|play\s*list)\s*:\s*/i, '');
+}
+
+// Cut `flat` at each boundary, dropping the boundary token itself (a number or timestamp).
+function cutAt(flat, boundaries) {
+    const chunks = [flat.slice(0, boundaries[0].start)];   // anything before the first boundary
+    boundaries.forEach((b, i) => {
+        const next = i + 1 < boundaries.length ? boundaries[i + 1].start : flat.length;
+        chunks.push(flat.slice(b.end, next));
+    });
+    return chunks;
+}
+
+function timestampBoundaries(flat) {
+    const re = /(^|\s)[\[(]?\d{1,2}:\d{2}(?::\d{2})?[\])]?(?=\s)/g;
+    const found = [];
+    let m;
+    while ((m = re.exec(flat))) found.push({ start: m.index + m[1].length, end: re.lastIndex });
+    return found.length >= 2 ? found : null;
+}
+
+// Track numbers are only trusted as boundaries when they run in sequence, which is what
+// separates "7 Vic 20 & Sinclair" (20 is part of the name) from "20 Burnski" (a track number).
+function numberChainBoundaries(flat) {
+    const re = /(^|\s)(\d{1,3})[.)]?(?=\s+\D)/g;
+    const cands = [];
+    let m;
+    while ((m = re.exec(flat))) {
+        cands.push({ value: Number(m[2]), start: m.index + m[1].length, end: re.lastIndex });
+    }
+
+    const firstIndex = (from, value) => {
+        for (let j = from; j < cands.length; j++) if (cands[j].value === value) return j;
+        return -1;
+    };
+
+    let best = [];
+    for (let i = 0; i < cands.length; i++) {
+        const chain = [cands[i]];
+        let k = i;
+        while (true) {
+            const expected = cands[k].value + 1;
+            const exact = firstIndex(k + 1, expected);
+            const skip = firstIndex(k + 1, expected + 1);   // tolerate one number OCR missed
+            let next = -1;
+            if (exact >= 0 && (skip < 0 || exact < skip)) {
+                next = exact;
+            } else if (skip >= 0) {
+                // the exact number turns up after a stray "expected+1" inside a title
+                // ("... Area 7 6 Next Artist") — take it unless the sequence has moved on past it
+                const movedOn = firstIndex(skip + 1, expected + 2);
+                next = exact >= 0 && (movedOn < 0 || exact < movedOn) ? exact : skip;
+            }
+            if (next < 0) break;
+            chain.push(cands[next]);
+            k = next;
+        }
+        if (chain.length > best.length) best = chain;
+    }
+    return best.length >= 3 ? best : null;
+}
+
+function splitIntoChunks(text) {
+    const cleaned = removeHeaders(text);
+    const flat = cleaned.replace(/\s+/g, ' ').trim();   // wrapped lines rejoin before boundary search
+    if (!flat) return [];
+
+    const byTime = timestampBoundaries(flat);
+    if (byTime) return cutAt(flat, byTime);
+
+    const byNumber = numberChainBoundaries(flat);
+    if (byNumber) return cutAt(flat, byNumber);
+
+    return cleaned.split(/\r?\n/);   // unnumbered list: one track per line
+}
+
+const MASHUP = /(\s+(?:w\/|x|vs\.?)\s+)/i;
+
+// "A - Song w/ B - Other" is two tracks, but "Overmono vs. Lil Baby - BBY" is one —
+// only split where the pieces on both sides each have their own artist/song separator.
+function splitMashups(chunk) {
+    const parts = chunk.split(MASHUP);
+    const out = [parts[0]];
+    for (let i = 1; i < parts.length; i += 2) {
+        const joiner = parts[i];
+        const piece = parts[i + 1];
+        if (splitArtistSong(piece) && splitArtistSong(out[out.length - 1])) {
+            out.push(piece);
+        } else {
+            out[out.length - 1] += joiner + piece;
+        }
+    }
+    return out;
+}
+
 function parseTracklist(text) {
     const entries = [];
-    for (const raw of String(text).split(/\r?\n/)) {
-        const line = raw.trim();
+    for (const chunk of splitIntoChunks(text)) {
+        const line = chunk.replace(/\s+/g, ' ').trim().replace(/\s*\*+$/, '');   // "*" = unreleased marker
         if (!line) continue;
 
-        const stripped = stripLeadingIndex(line);
-        if (!stripped || !hasContent(stripped)) continue;   // rules, dividers, stray numbers
+        for (const piece of splitMashups(line)) {
+            const stripped = stripLeadingIndex(piece.trim());
+            if (!stripped || !hasContent(stripped)) continue;   // rules, dividers, stray numbers
 
-        const parts = splitArtistSong(stripped);
-        if (parts && parts[0].trim() && parts[1].trim()) {
-            entries.push({ artist: parts[0].trim(), song: parts[1].trim(), resolved: true });
-        } else {
-            // no separator — keep it rather than dropping it silently
-            entries.push({ artist: 'Unknown', song: stripped, resolved: false });
+            const parts = splitArtistSong(stripped);
+            if (parts && parts[0].trim() && parts[1].trim()) {
+                entries.push({ artist: parts[0].trim(), song: parts[1].trim(), resolved: true });
+            } else {
+                // no separator — keep it rather than dropping it silently
+                entries.push({ artist: 'Unknown', song: stripped, resolved: false });
+            }
         }
     }
     return entries;
@@ -66,7 +170,7 @@ function parseTracklist(text) {
 
 function searchQuery(entry) {
     const title = queryTitle(entry.song);
-    return entry.artist === 'Unknown' ? title : entry.artist + ' ' + title;
+    return /^unknown(?: artist)?$/i.test(entry.artist) ? title : entry.artist + ' ' + title;
 }
 
 /* ---- OCR ---- */
