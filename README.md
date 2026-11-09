@@ -4,8 +4,6 @@ Sort a DJ library into crates quickly. Allocrate shows one track at a time with 
 
 **Live site:** https://allocrate.app
 
-<img src="allocratelogo1.png" alt="Allocrate" width="110">
-
 ![Screenshot of webpage](image.png?raw=true "Webpage")
 
 ## Why it exists
