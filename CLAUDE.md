@@ -2,13 +2,12 @@
 
 ## What it is
 A web app for DJs to quickly sort their music library into custom bins/crates.
-The core loop: tracks load one by one, user taps a coloured bin button to assign it, crate view updates live on the right. Built in vanilla HTML, CSS, and JavaScript — no frameworks, no build tools, just three files opened directly in the browser.
+The core loop: tracks load one by one, user taps a coloured bin button to assign it, crate view updates live on the right. Built in vanilla HTML, CSS, and JavaScript — no frameworks, no build tools, files opened directly in the browser.
 
 ## Stack
 Two tools, shared `style.css`. The page titles are the nav: "allocrate" and "IDEngine" sit side by side at heading size, with the current one dark and the other muted. Deployed at https://allocrate.app/ from the GitHub repo (so it runs over HTTPS, not file://).
 - `index.html` / `app.js` — the sorter
 - `idengine.html` / `idengine.js` — OCR a tracklist photo into search links
-- `index.html` — layout and structure
 - `style.css` — warm white background (#FAF9F5), coloured gradient bin buttons with Duolingo-style press effect, responsive two-column grid
 - `app.js` — all logic
 
