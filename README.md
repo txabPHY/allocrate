@@ -1,5 +1,7 @@
 # Allocrate
 
+**Built with Claude Code**
+
 Sort a DJ library into crates quickly. Allocrate shows one track at a time with a row of coloured crate buttons. Tap one and move on. When you finish, export the result back into rekordbox, or as plain folders.
 
 **Live site:** https://allocrate.app
